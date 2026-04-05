@@ -51,6 +51,11 @@ credentials.db
 .my.cnf
 .mylogin.cnf
 
+# CLI tool auth (OAuth tokens, session files)
+hosts.yml
+auth.json
+.npmrc
+
 # Network / misc
 .netrc
 .htpasswd

@@ -15,6 +15,85 @@ LOG_DIR = Path.home() / ".secret-scanner"
 LOG_DIR.mkdir(exist_ok=True)
 LOG_FILE = LOG_DIR / f"{datetime.now().strftime('%Y-%m-%d_%H%M%S')}.log"
 
+MITIGATIONS = """
+  [ssh/key]
+    Threat:     Plaintext private keys on disk. Exfiltrable by any process
+                running as your user. Common target for malicious packages.
+    Mitigation: 1Password SSH agent — keys live in 1Password, never on disk.
+                Touch ID per-session. 1P serves them via SSH_AUTH_SOCK.
+    Also:       Ensure 600 permissions. Remove keys you no longer use.
+
+  [cloud-credential]
+    Threat:     Long-lived access keys (AWS, GCP) are the highest-value target.
+                A stolen AWS key can spin up resources, access data, etc.
+    Mitigation: AWS: use `op plugin` to serve credentials via 1Password, then
+                delete ~/.aws/credentials. Or better: migrate to IAM Identity
+                Center for short-lived session tokens (no persistent keys).
+                GCP: `gcloud auth login` per-session. Delete stored ADC if not
+                needed for local dev. Revoke with `gcloud auth revoke`.
+    Also:       Scope IAM permissions tightly. Enable CloudTrail/audit logs.
+                Set billing alerts. Rotate keys if you can't eliminate them.
+
+  [env/secrets-file]
+    Threat:     API keys, database URLs, etc. in plaintext .env files. Easy to
+                accidentally commit to git. Readable by any local process.
+    Mitigation: Use `op run` with op:// references — secrets are injected as
+                env vars at runtime, never written to disk. Keep a .env.example
+                with placeholder values for documentation.
+    Also:       Ensure .env is in .gitignore. Check git history for past commits
+                of secrets (`git log -p -- .env`).
+
+  [cli-auth]
+    Threat:     OAuth tokens for tools like gh, codex, npm. Stored on disk with
+                600 permissions. Scoped and revocable, but still exfiltrable.
+    Mitigation: These tools chose plaintext storage deliberately — if an attacker
+                runs as your user, they can call the CLI directly anyway. The
+                real defense is: review token scopes (minimize permissions),
+                enable 2FA on the backing accounts, monitor for anomalous usage,
+                and revoke tokens you no longer need.
+    Also:       `gh auth status` to review scopes. `npm token list` to audit.
+                Some tools support `op plugin` (gh does) to avoid disk storage.
+
+  [certificate]
+    Threat:     Usually low risk — most .cer/.crt/.der files are public certs
+                or test fixtures from dependencies. Private key files (.key,
+                .pem) paired with certs are the actual concern.
+    Mitigation: If found in dependency caches, ignore (test data). If found in
+                your own projects, ensure the private key half is protected.
+
+  [database-credential]
+    Threat:     .pgpass, .my.cnf contain database passwords in plaintext.
+    Mitigation: Move to `op run` or 1Password. For local dev databases with
+                no real data, low risk. For production credentials, high risk.
+    Also:       Ensure 600 permissions at minimum.
+
+  [network-credential]
+    Threat:     .netrc contains login/password pairs for services. Plaintext.
+    Mitigation: Delete if the service is no longer used. Move to 1Password
+                if still needed. Ensure 600 permissions.
+
+  [kubernetes]
+    Threat:     kubeconfig files may contain cluster credentials or tokens.
+    Mitigation: Use short-lived tokens via cloud provider auth plugins.
+                Don't store cluster admin creds locally.
+
+  [generic-secret]
+    Threat:     Matched by filename pattern but may be a false positive (e.g.
+                Keynote .key files, application config). Review individually.
+    Mitigation: Check if the file actually contains secret material. Delete
+                or protect accordingly.
+
+  [general guidance]
+    The primary filesystem threat is smash-and-grab: a malicious process reads
+    known credential paths and exfiltrates them. Defenses in order of value:
+      1. Delete secrets you don't need (zero attack surface)
+      2. Use Keychain or 1Password (not on disk at all)
+      3. Use short-lived tokens (limited blast radius if stolen)
+      4. Use `op run` for project secrets (never touch disk)
+      5. File permissions 600/700 (stops other users, not your own)
+      6. Monitor and alert (CloudTrail, GitHub audit log, billing alerts)
+"""
+
 
 def section(f, title):
     f.write(f"\n{'='*60}\n{title}\n{'='*60}\n")
@@ -88,11 +167,24 @@ def write_report(data: dict):
                     f"modified: {entry.get('modified','')}\n"
                 )
 
+        # --- Mitigations ---
+        section(f, "MITIGATION STRATEGIES BY CATEGORY")
+        f.write(MITIGATIONS)
+
         # --- Summary ---
         section(f, "SUMMARY")
         risky = [e for e in files if e.get("flags", "none") != "none"]
         perm_issues = [d for d in dirs if d.get("status") == "OPEN"]
+
+        # Count by category
+        by_cat = {}
+        for entry in files:
+            cat = entry.get("category", "unknown")
+            by_cat[cat] = by_cat.get(cat, 0) + 1
+
         f.write(f"  secret files found:          {len(files)}\n")
+        for cat, count in sorted(by_cat.items()):
+            f.write(f"    {cat:<30} {count}\n")
         f.write(f"  files with risk flags:       {len(risky)}\n")
         f.write(f"  dir permission issues:       {len(perm_issues)}\n")
         f.write(f"  env vars with secret names:  {len(env_vars)}\n")

@@ -22,6 +22,8 @@ categorize() {
             echo "token" ;;
         .pgpass|.my.cnf|.mylogin.cnf)
             echo "database-credential" ;;
+        hosts.yml|auth.json|.npmrc)
+            echo "cli-auth" ;;
         .netrc|.htpasswd)
             echo "network-credential" ;;
         kubeconfig|*.kubeconfig)
