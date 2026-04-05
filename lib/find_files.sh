@@ -81,11 +81,43 @@ while IFS= read -r pattern || [[ -n "$pattern" ]]; do
     fi
 done < "$PATTERNS"
 
-# Run find across home dir, skip .Trash and known noisy dirs
+# Dirs to skip: package manager caches and third-party code contain
+# test certs, example keys, etc. that are not real secrets.
+EXCLUDE_PATHS=(
+    "*/.Trash/*"
+    "*/node_modules/*"
+    "*/.git/*"
+    # Package manager caches
+    "*/.cache/*"
+    "*/.cargo/registry/*"
+    "*/.bun/install/cache/*"
+    "*/.npm/*"
+    "*/.yarn/*"
+    "*/.m2/repository/*"
+    "*/go/pkg/mod/*"
+    # Toolchain internals
+    "*/google-cloud-sdk/platform/*"
+    "*/google-cloud-sdk/lib/*"
+    "*/.pyenv/*"
+    "*/.rustup/*"
+    "*/.nvm/*"
+    # IDE/editor extensions
+    "*/.cursor/extensions/*"
+    "*/.vscode/extensions/*"
+    "*/.codex/*"
+    # Python venvs inside projects
+    "*/.venv/*"
+    "*/venv/*"
+)
+
+EXCLUDE_ARGS=()
+for p in "${EXCLUDE_PATHS[@]}"; do
+    EXCLUDE_ARGS+=(-not -path "$p")
+done
+
+# Run find across home dir
 find "$HOME" \
-    -not -path "*/.Trash/*" \
-    -not -path "*/node_modules/*" \
-    -not -path "*/.git/*" \
+    "${EXCLUDE_ARGS[@]}" \
     \( "${find_args[@]}" \) \
     -type f 2>/dev/null | while read -r filepath; do
 
