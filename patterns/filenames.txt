@@ -1,0 +1,58 @@
+# SSH keys
+id_rsa
+id_rsa.pub
+id_dsa
+id_dsa.pub
+id_ecdsa
+id_ecdsa.pub
+id_ed25519
+id_ed25519.pub
+*.pem
+*.key
+*.p12
+*.pfx
+*.pkcs12
+*.jks
+*.keystore
+*_rsa
+*_dsa
+*_ecdsa
+*_ed25519
+
+# Certificates
+*.cer
+*.crt
+*.der
+
+# Generic secrets
+.env
+.env.*
+*.secret
+*.secrets
+secrets.yml
+secrets.yaml
+secrets.json
+*.token
+*_token
+*tokens*
+*.credentials
+
+# Cloud / service credentials
+credentials
+credentials.json
+client_secret*.json
+service_account*.json
+application_default_credentials.json
+access_tokens.db
+credentials.db
+
+# Database
+.pgpass
+.my.cnf
+.mylogin.cnf
+
+# Network / misc
+.netrc
+.htpasswd
+kubeconfig
+*.kubeconfig

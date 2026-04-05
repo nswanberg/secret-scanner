@@ -1,0 +1,47 @@
+# SSH
+~/.ssh
+
+# AWS
+~/.aws
+
+# Google Cloud
+~/.config/gcloud
+
+# Kubernetes
+~/.kube
+
+# Docker
+~/.docker
+
+# NPM / Node
+~/.npmrc
+~/.npm
+
+# Ruby / Gems
+~/.gem/credentials
+
+# Python / pip
+~/.pip
+
+# Git credentials
+~/.git-credentials
+~/.config/git
+
+# Heroku
+~/.netrc
+~/.heroku
+
+# GitHub CLI
+~/.config/gh
+
+# Azure
+~/.azure
+
+# Terraform
+~/.terraform.d
+
+# Ansible
+~/.ansible
+
+# macOS specific
+~/Library/Keychains
